@@ -3,6 +3,10 @@
 This repository collects several TSRI Verilog practice labs for learning basic RTL design, simulation, and verification.
 Topics include ALU, FIR filter, FSM, serial data parsing, memory model, LBP image processing, and priority encoder pipeline design.
 
+<img width="1637" height="956" alt="ic_design_flow" src="https://github.com/user-attachments/assets/82802d96-9066-4a10-bfc9-42d906f59a98" />
+
+
+
 ---
 
 ## Lab Overview
