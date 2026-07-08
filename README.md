@@ -33,6 +33,20 @@ Topics include ALU, FIR filter, FSM, serial data parsing, memory model, LBP imag
 
 # Design Notes
 
+## Table of Contents
+
+1. [Design Compiler Setup](#1-design-compiler-setup)
+2. [Timing Report Notes](#2-timing-report-notes)
+3. [Reset Notes](#3-reset-notes)
+4. [Array Reset](#4-array-reset)
+5. [Signals Assigned Inside an `always` Block Should Be Declared as `reg`](#5-signals-assigned-inside-an-always-block-should-be-declared-as-reg)
+6. [Multi-driven Signals](#6-multi-driven-signals)
+7. [Reset Signals to Avoid Unknown Values](#7-reset-signals-to-avoid-unknown-values)
+8. [Explicitly Specified Bit Width](#8-explicitly-specified-bit-width)
+9. [cnt](#9-cnt)
+10. [Memory](#10-memory)
+11. [Z and X](#11-z-and-x)
+
 ## 1. Design Compiler Setup
 In Design Compiler, `target_library` specifies the standard cell library used during synthesis.
 
