@@ -31,7 +31,7 @@ Topics include ALU, FIR filter, FSM, serial data parsing, memory model, LBP imag
 * Practice makes perfect!
 ---
 
-## Design Compiler, SDC, and Verilog Synthesis Notes
+# Design Notes
 
 ## 1. Design Compiler Setup
 In Design Compiler, `target_library` specifies the standard cell library used during synthesis.
