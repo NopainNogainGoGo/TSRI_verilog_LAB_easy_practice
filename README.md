@@ -282,10 +282,179 @@ FSM states must be reset.
 Counters should usually be reset.
 Output registers should usually be reset.
 ```
+## 8. Explicitly specified bit width
+In the original code, if the output logic was written as:
 
-This prevents many unknown values in simulation and makes the circuit startup behavior more stable.
+```verilog
+ST2: {WENAB, RENAB} = {1, 1};
+```
+
+This style can easily cause problems in Verilog. The reason is that constants without an explicitly specified bit width, such as `1` or `0`, are usually treated as **32-bit integers**.
+
+Therefore:
+
+```verilog
+{1, 1}
+```
+
+does not necessarily mean the 2-bit value `2'b11`. Instead, many tools may interpret it as a concatenation of two 32-bit values:
+
+```verilog
+{32'b...0001, 32'b...0001}
+```
+
+This creates a 64-bit value.
+
+However, the left-hand side:
+
+```verilog
+{WENAB, RENAB}
+```
+
+is only 2 bits wide. When a 64-bit value is assigned to a 2-bit signal, Verilog keeps only the rightmost, or least significant, 2 bits.
+
+Since the least significant 2 bits of the value are:
+
+```verilog
+2'b01
+```
+
+the actual result may become:
+
+```verilog
+{WENAB, RENAB} = 2'b01;
+```
+
+which means:
+
+```verilog
+WENAB = 0;
+RENAB = 1;
+```
+
+This is different from the intended result, where both `WENAB` and `RENAB` should be set to `1`.
+
+To avoid this issue, always specify the exact bit width when assigning concatenated or multi-bit signals. For example, use:
+
+```verilog
+2'b11
+```
+
+or:
+
+```verilog
+{1'b1, 1'b1}
+```
+
+The combinational output logic can be modified as follows:
+
+```verilog
+always @(*) begin
+    case (Current_ST)
+        // Use 2'b to make sure the bit width matches {WENAB, RENAB}
+        ST0:     {WENAB, RENAB} = 2'b10;
+        ST1:     {WENAB, RENAB} = 2'b00;
+        ST2:     {WENAB, RENAB} = 2'b11;
+        ST3:     {WENAB, RENAB} = 2'b10;
+        default: {WENAB, RENAB} = 2'b10;
+    endcase
+end
+```
 
 ---
+
+## 9. cnt
+reg[3:0] cnt;
+<img width="865" height="586" alt="image" src="https://github.com/user-attachments/assets/d5b38044-f6bc-4689-b3e3-389cd7692d90" />
+With this design, only one counter is needed to implement both `0–7` and `0–15` counting.
+
+
+---
+
+## 10. memory
+
+## Method 1: Use a Counter as the Memory Address
+In this method, a counter is used as the write address of the memory.
+Every time new data comes in, the data is stored into memory at the address pointed to by `cnt`.
+
+```verilog
+memory[cnt] <= data_in;
+cnt <= cnt + 1;
+```
+
+For example, if the memory needs to store 8 data values, a 3-bit counter can be used:
+
+```verilog
+reg [2:0] cnt;
+reg [DATA_WIDTH-1:0] memory [0:7];
+```
+
+The counter counts from `0` to `7`. After reaching `7`, it automatically wraps around to `0`.
+
+This method is suitable when the data needs to be stored in a memory array and accessed later by address.
+
+## Method 2: Use Shift Registers to Store Data
+
+In this method, data is stored by shifting registers.
+
+Every time new data comes in, the old data is shifted to the next register, and the newest data is stored in the first register.
+
+```verilog
+data_reg[0] <= data_in;
+data_reg[1] <= data_reg[0];
+data_reg[2] <= data_reg[1];
+data_reg[3] <= data_reg[2];
+```
+
+This method is suitable when the circuit only needs to keep the most recent several input values.
+
+For example, in FIR filters, moving average circuits, or serial data processing, shift registers are commonly used.
+
+In summary, if the design needs address-based storage, use a counter as the memory address.
+If the design only needs to keep recent sequential data, use shift registers.
+
+## 11. Z and X
+The value `z` represents a **high-impedance** state. This means the output is electrically disconnected from the circuit.
+
+It is not logic `0` and it is not logic `1`. Instead, the signal is floating.
+
+The `z` value is mainly used for **tri-state buffers** and **shared buses**. When multiple devices share the same wire, only one device should drive the bus at a time. The other devices should output `z` so they do not interfere with the active driver.
+
+For example:
+
+```verilog id="x46k8m"
+assign bus_line = (enable) ? data_out : 1'bz;
+```
+
+When `enable = 1`, `bus_line` is driven by `data_out`.
+
+When `enable = 0`, `bus_line` becomes `z`, meaning this module is not driving the bus.
+
+This prevents multiple circuits from driving different values onto the same wire at the same time.
+
+---
+The value `x` means **unknown**. It indicates that the simulator cannot determine whether the signal should be `0` or `1`.
+
+This value commonly appears during simulation.
+
+One common cause is **uninitialized registers**. For example, flip-flops may start as `x` before a reset signal assigns them a known value.
+
+Another common cause is **logic contention**. If one circuit tries to drive a signal to `1` while another circuit tries to drive the same signal to `0`, the simulator may show the result as `x`.
+
+For example:
+
+```verilog id="z90aq2"
+assign bus_line = enable_a ? data_a : 1'bz;
+assign bus_line = enable_b ? data_b : 1'bz;
+```
+
+If both `enable_a` and `enable_b` are active at the same time, and `data_a` and `data_b` have different values, the bus may become `x` in simulation.
+
+In real hardware, there is no actual `x` value. The voltage will eventually settle to some physical level, but it may be unstable, unpredictable, or even damaging if two outputs fight each other.
+
+
+
+
 
 
 
